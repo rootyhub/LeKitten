@@ -52,7 +52,7 @@ shared:
     lead_distance_m: 0.4
 
 sim:
-  scene: sim/scenes/sample_room.xml   # living_room.xml once the scan is in (S3)
+  scene: sim/models/so101/scene.xml   # S3 switches to sim/scenes/sample_room.xml / living_room.xml
   arm_model: sim/models/so101/so101.xml
   joint_map:            # per joint: sim_rad = sign * radians(deg) + offset_rad
     shoulder_pan.pos:  {sign: 1, offset_rad: 0.0}

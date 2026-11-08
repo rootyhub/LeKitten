@@ -34,6 +34,14 @@ conda activate lerobot
 
 Put a LiDAR scan of your room (OBJ or GLB) in `sim/private_scan/`. That folder is git-ignored, so your home never ends up on GitHub. Without a scan, the sim uses `sim/scenes/sample_room.xml`.
 
+## Try it
+
+```bash
+mjpython -m lekitten.check --backend sim     # watch each joint wiggle in the 3D window (macOS needs mjpython)
+python -m lekitten.check --backend sim --headless --video outputs/check.mp4
+```
+
 ## Credits
 
-Built with [LeRobot](https://github.com/huggingface/lerobot) and [MuJoCo](https://mujoco.org).
+- Built with [LeRobot](https://github.com/huggingface/lerobot) and [MuJoCo](https://mujoco.org).
+- SO-101 model (`sim/models/so101/`): [The Robot Studio SO101 MJCF](https://github.com/google-deepmind/mujoco_menagerie/tree/main/robotstudio_so101) from MuJoCo Menagerie (commit `98a70c5`), Apache License 2.0. Its LICENSE is kept alongside the model.
