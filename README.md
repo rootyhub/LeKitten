@@ -32,7 +32,14 @@ conda activate lerobot
 
 ## Your own room
 
-Put a LiDAR scan of your room (OBJ or GLB) in `sim/private_scan/`. That folder is git-ignored, so your home never ends up on GitHub. Without a scan, the sim uses `sim/scenes/sample_room.xml`.
+Put a LiDAR scan of your room (OBJ or GLB) in `sim/private_scan/`. That folder is git-ignored, so your home never ends up on GitHub. Then:
+
+```bash
+python -m lekitten.tools.import_scan "sim/private_scan/<scan>.obj" --origin X Y   # X Y = play-zone corner
+python -m lekitten.tools.show_room --room living_room --snapshot
+```
+
+and fill in the `living_room` entry in `config.yaml`. Without a scan, the sim uses `sim/scenes/sample_room.xml`.
 
 ## Try it
 

@@ -31,6 +31,8 @@ def add_backend_args(p: argparse.ArgumentParser) -> None:
                    help="Sim only: no 3D window (use with --video).")
     p.add_argument("--video", default=None,
                    help="Sim only: save a 3D-view video to this .mp4 path.")
+    p.add_argument("--room", default=None, help="Sim only: room from config.yaml (default: room:)")
+    p.add_argument("--spot", default=None, help="Sim only: arm spot (A/B/C). Default: the room's arm_spot")
 
 
 def make_backend(args: argparse.Namespace) -> Backend:
@@ -38,6 +40,7 @@ def make_backend(args: argparse.Namespace) -> Backend:
     name = args.backend or cfg.get("backend", "sim")
     if name == "sim":
         from backends.sim import make_sim_backend
-        return make_sim_backend(cfg, viewer=not args.headless, video=args.video)
+        return make_sim_backend(cfg, viewer=not args.headless, video=args.video,
+                                room=args.room, spot=args.spot)
     from backends.real import make_real_backend
     return make_real_backend(cfg, dry_run=args.dry_run)

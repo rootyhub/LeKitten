@@ -12,9 +12,9 @@ import numpy as np
 
 
 class SimWorld:
-    def __init__(self, scene_path: str | Path, viewer: bool = True, video: str | None = None,
+    def __init__(self, model: mujoco.MjModel, viewer: bool = True, video: str | None = None,
                  video_fps: int = 30, video_size: tuple[int, int] = (960, 720)):
-        self.model = mujoco.MjModel.from_xml_path(str(scene_path))
+        self.model = model
         self.data = mujoco.MjData(self.model)
         mujoco.mj_forward(self.model, self.data)
         self.viewer = None

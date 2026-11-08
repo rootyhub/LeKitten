@@ -3,6 +3,7 @@
 # "null" = not known yet; filled in during the step named next to it.
 
 backend: sim            # default for --backend (sim | real)
+room: sample_room       # which entry under rooms: to use (sample_room | living_room)
 
 shared:
   joints:               # LeRobot SO-101 names; degrees, gripper 0 (open)..100 (closed)
@@ -14,31 +15,20 @@ shared:
     - gripper.pos
 
   arm:
-    spots:              # candidate arm base poses in the room frame (S3)
-      A: {xyz: null, yaw_deg: null, surface: null}
-      B: {xyz: null, yaw_deg: null, surface: null}
-      C: {xyz: null, yaw_deg: null, surface: null}
-    spot: A             # chosen spot (S4 picks it from the reach maps)
     max_joint_speed_deg_s: 60
-    joint_limits_deg: null   # inside the calibrated range (S2 from the model, arrival day from calibration)
+    joint_limits_deg: null   # null = the model's limits; arrival day narrows to the calibrated range
 
   camera:               # overhead camera, same in sim and real
     width: 640
     height: 480
     fps: 30
     model: Lemi-V1.1 (fisheye)
-    fov_deg: null       # vertical field of view (S4)
-    pose: {xyz: null, rpy_deg: null}   # in the room frame (S3)
+    fov_deg: 120        # vertical field of view (S4: tune until the sim frame matches the photo)
 
   laser:
     mount_offset_m: [0.0, 0.0, 0.0]   # from the gripper's fixed jaw (S4)
     min_down_angle_deg: 10            # beam always at least this far below horizontal
     shallow_angle_deg: 25             # below this the dot smears (reach map colour)
-
-  room:
-    play_zone: null     # polygon [[x, y], ...] on the floor (S3)
-    toy_spot: null      # [x, y] (S3)
-    no_aim_zones: []    # list of {name, polygon, z_max}; couch seating up to head height (S3)
 
   safety:
     cat_margin_m: 0.15            # dot never within cat radius + this
@@ -51,10 +41,48 @@ shared:
     dot_speed_m_s: 0.6
     lead_distance_m: 0.4
 
+# Everything about a room, in that room's frame. Obstacles are simple invisible
+# collision shapes: box {center, size (full x,y,z), yaw_deg} or cylinder {center, radius, height}.
+rooms:
+  sample_room:          # public stand-in, sim/scenes/sample_room.xml
+    scene: sim/scenes/sample_room.xml
+    arm_spots:
+      A: {xyz: [2.35, 0.75, 0.75], yaw_deg: 180, surface: "table, 75 cm"}
+    arm_spot: A
+    camera: {xyz: [1.0, -0.6, 2.2], look_at: [1.0, 0.75, 0.0]}
+    play_zone: [[0.0, 0.0], [2.0, 0.0], [2.0, 1.5], [0.0, 1.5]]
+    toy_spot: [0.3, 0.3]
+    no_aim_zones:
+      - {name: couch, polygon: [[0.0, 2.0], [2.0, 2.0], [2.0, 3.0], [0.0, 3.0]], z_max: 1.4}
+    obstacles:
+      - {name: table, type: box, center: [2.4, 0.75, 0.375], size: [0.6, 0.8, 0.75]}
+      - {name: couch_seat, type: box, center: [1.0, 2.5, 0.225], size: [2.0, 0.9, 0.45]}
+      - {name: couch_back, type: box, center: [1.0, 2.9, 0.425], size: [2.0, 0.2, 0.85]}
+
+  living_room:          # the owner's room; scan lives in sim/private_scan/ (never committed)
+    scene: sim/scenes/living_room.xml
+    # PROVISIONAL: read off the scan (top-down map + surface heights), not yet checked
+    # against the tape measure. Origin = the rug's corner nearest the desk and side table.
+    arm_spots:
+      A: {xyz: [-0.30, 0.70, 0.59], yaw_deg: 0,  surface: "orange desk (scan says ~59 cm)"}
+      B: {xyz: [1.25, -0.25, 0.65], yaw_deg: 90, surface: "round side table (scan says ~65 cm)"}
+      C: {xyz: [0.80, -0.35, 0.00], yaw_deg: 90, surface: "floor, below the rug"}
+    arm_spot: A
+    camera: {xyz: [-0.35, 0.30, 1.90], look_at: [0.9, 1.3, 0.0]}   # guessed from the photo
+    play_zone: [[0.0, 0.0], [1.6, 0.0], [1.6, 2.4], [0.0, 2.4]]     # the rug
+    toy_spot: [0.3, 0.3]
+    no_aim_zones:
+      - {name: couch, polygon: [[1.55, 0.2], [2.95, 0.2], [2.95, 2.75], [1.55, 2.75]], z_max: 1.4}
+    obstacles:
+      - {name: couch_seat, type: box, center: [2.25, 1.25, 0.155], size: [1.3, 2.0, 0.31]}
+      - {name: couch_back, type: box, center: [2.25, 2.48, 0.375], size: [1.3, 0.45, 0.75]}
+      - {name: side_table, type: cylinder, center: [1.25, -0.23, 0.325], radius: 0.28, height: 0.65}
+      - {name: desk, type: box, center: [-0.29, 0.69, 0.295], size: [0.45, 1.45, 0.59]}
+      - {name: wood_stand, type: box, center: [0.19, 1.98, 0.245], size: [0.25, 0.4, 0.49]}
+
 sim:
-  scene: sim/models/so101/scene.xml   # S3 switches to sim/scenes/sample_room.xml / living_room.xml
   arm_model: sim/models/so101/so101.xml
-  joint_map:            # per joint: sim_rad = sign * radians(deg) + offset_rad
+  joint_map:            # per joint: sim_rad = sign * radians(deg) + offset_rad (gripper: 0..100 mapped to its range)
     shoulder_pan.pos:  {sign: 1, offset_rad: 0.0}
     shoulder_lift.pos: {sign: 1, offset_rad: 0.0}
     elbow_flex.pos:    {sign: 1, offset_rad: 0.0}

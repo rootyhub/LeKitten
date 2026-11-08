@@ -1,0 +1,32 @@
+<!-- The owner's living room. This file is public but only POINTS to the scan:
+     sim/private_scan/processed/ is git-ignored and created by
+       python -m lekitten.tools.import_scan "sim/private_scan/<your scan>.obj"
+     Room frame: meters, z up, floor at z=0. The arm, camera and zones are added from config.yaml. -->
+<mujoco model="living_room">
+  <compiler angle="radian" texturedir="../private_scan/processed" meshdir="../private_scan/processed"/>
+  <option timestep="0.005"/>
+
+  <visual>
+    <headlight diffuse="0.5 0.5 0.5" ambient="0.45 0.45 0.45" specular="0 0 0"/>
+    <global azimuth="210" elevation="-35" offwidth="1920" offheight="1080"/>
+    <quality shadowsize="4096"/>
+  </visual>
+
+  <asset>
+    <texture name="scan_0" type="2d" file="scan_0.png"/>
+    <texture name="scan_1" type="2d" file="scan_1.png"/>
+    <material name="scan_0" texture="scan_0" specular="0" shininess="0"/>
+    <material name="scan_1" texture="scan_1" specular="0" shininess="0"/>
+    <mesh name="scan_0" file="scan_0.obj" inertia="shell"/>
+    <mesh name="scan_1" file="scan_1.obj" inertia="shell"/>
+  </asset>
+
+  <worldbody>
+    <light pos="2 2 2.4" dir="0 0 -1" diffuse="0.4 0.4 0.4" castshadow="false"/>
+    <!-- The scan is visual only (no collisions). -->
+    <geom name="scan_0" type="mesh" mesh="scan_0" material="scan_0" contype="0" conaffinity="0" group="1"/>
+    <geom name="scan_1" type="mesh" mesh="scan_1" material="scan_1" contype="0" conaffinity="0" group="1"/>
+    <!-- Simple invisible collision shapes (group 3 = hidden by default). -->
+    <geom name="floor" type="plane" size="0 0 0.05" rgba="0.5 0.5 0.5 0" group="3"/>
+  </worldbody>
+</mujoco>
