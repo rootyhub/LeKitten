@@ -1,0 +1,29 @@
+# --- Privacy: this repo is PUBLIC (see CLAUDE.md) ---
+# Owner's home: Polycam scan + photos
+sim/private_scan/
+# Real-arm calibration (home Mac, specific to these motors)
+calibration/
+# Generated reach maps, sim videos, frames
+outputs/
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+*token*
+# Videos and datasets
+*.mp4
+*.mov
+*.avi
+*.mkv
+datasets/
+data/
+
+# --- Python / tooling ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+.venv/
+.DS_Store
+MUJOCO_LOG.TXT

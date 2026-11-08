@@ -1,0 +1,18 @@
+# Conda environment shared by the work laptop (sim) and the home Mac (real arm).
+# Create:  conda env create -f environment.yml
+# Update:  conda env update -f environment.yml --prune
+name: lerobot
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - ffmpeg
+  - pip
+  - pip:
+      # OpenCV comes from lerobot (opencv-python-headless). Do NOT add opencv-python.
+      - lerobot[core_scripts,feetech]==0.7.0
+      - mujoco==4.0.0
+      - pyyaml
+      - matplotlib
+      - trimesh
+      - pytest
