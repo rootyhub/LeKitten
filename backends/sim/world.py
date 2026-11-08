@@ -33,6 +33,7 @@ class SimWorld:
             self._open_video(video, video_fps, video_size)
         self._next_frame_t = 0.0
         self._wall0 = None
+        self.after_advance = []  # callables run after physics moves (e.g. the laser dot)
 
     # --- time -------------------------------------------------------------
     def advance(self, seconds: float, step_hook=None) -> None:
@@ -43,8 +44,10 @@ class SimWorld:
                 step_hook()
             mujoco.mj_step(self.model, self.data)
             if self._video and self.data.time >= self._next_frame_t:
+                self._run_hooks()
                 self._write_frame()
                 self._next_frame_t += 1.0 / self._video_fps
+        self._run_hooks()
         if self.viewer:
             if not self.viewer.is_running():
                 raise SystemExit("3D window closed.")
@@ -54,6 +57,11 @@ class SimWorld:
             lag = self.data.time - (time.monotonic() - self._wall0)
             if lag > 0:
                 time.sleep(lag)
+
+    def _run_hooks(self) -> None:
+        mujoco.mj_kinematics(self.model, self.data)
+        for f in self.after_advance:
+            f()
 
     # --- video ------------------------------------------------------------
     def _open_video(self, path: str, fps: int, size: tuple[int, int]) -> None:

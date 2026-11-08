@@ -13,7 +13,7 @@ import mujoco.viewer
 import numpy as np
 from PIL import Image
 
-from backends.sim.scene import build_model, room_cfg
+from lekitten.model import build_model, room_cfg
 from lekitten.config import REPO, load_config
 
 

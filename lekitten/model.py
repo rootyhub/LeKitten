@@ -36,9 +36,17 @@ def look_at_quat(eye, target, up=(0, 0, 1)) -> list[float]:
     return q.tolist()
 
 
-def build_model(cfg: dict, room: str | None = None, spot: str | None = None) -> mujoco.MjModel:
+def build_model(cfg: dict, room: str | None = None, spot: str | None = None,
+                visual: bool = True) -> mujoco.MjModel:
+    """visual=True: the room's scene XML (scan, furniture looks) + a laser dot marker; for the sim.
+    visual=False: only floor + collision shapes + arm; the geometric model aim/reach use on both machines."""
     rc = room_cfg(cfg, room)
-    spec = mujoco.MjSpec.from_file(str(repo_path(rc["scene"])))
+    if visual:
+        spec = mujoco.MjSpec.from_file(str(repo_path(rc["scene"])))
+    else:
+        spec = mujoco.MjSpec()
+        floor = spec.worldbody.add_geom()
+        floor.name, floor.type, floor.size = "floor", mujoco.mjtGeom.mjGEOM_PLANE, [0, 0, 0.05]
     arm = mujoco.MjSpec.from_file(str(repo_path(cfg["sim"]["arm_model"])))
 
     # Use the arm's physics settings (tuned for the SO-101).
@@ -74,6 +82,13 @@ def build_model(cfg: dict, room: str | None = None, spot: str | None = None) -> 
     c.pos = cc["xyz"]
     c.quat = look_at_quat(cc["xyz"], cc["look_at"])
     c.fovy = cam["fov_deg"]
+
+    if visual:  # red laser dot, moved by the sim Laser; parked under the floor while off
+        dot = spec.worldbody.add_body(name="laser_dot", mocap=True, pos=[0, 0, -1])
+        g = dot.add_geom()
+        g.name, g.type, g.size = "laser_dot", mujoco.mjtGeom.mjGEOM_SPHERE, [0.01, 0, 0]
+        g.rgba, g.contype, g.conaffinity = [1, 0.05, 0.05, 1], 0, 0
+        g.material = ""
 
     spec.visual.global_.offwidth = max(spec.visual.global_.offwidth, 1920)
     spec.visual.global_.offheight = max(spec.visual.global_.offheight, 1080)
