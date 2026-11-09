@@ -1,4 +1,4 @@
-"""Teacher vs student: same cats, same starting poses, same safety rules. (T6)
+"""Teacher vs student: same cats, same starting poses, same safety rules.
 
     python -m lekitten.evaluate --policy outputs/train/t4/checkpoints/last/pretrained_model --episodes 20
     python -m lekitten.evaluate --policy ... --episodes 1 --video outputs/compare     # + side-by-side video
@@ -81,7 +81,8 @@ def main() -> None:
     p.add_argument("--episodes", type=int, default=20)
     p.add_argument("--duration", type=float, default=45.0)
     p.add_argument("--first-seed", type=int, default=1000, help="Different from the training seeds (100-149)")
-    p.add_argument("--name", default="t6")
+    p.add_argument("--name", default="eval")
+    p.add_argument("--room", default=None, help="Room from config.yaml (default: room:, the public sample_room)")
     p.add_argument("--video", default=None, help="Folder: save teacher/student 3D videos of episode 0 + side by side")
     p.add_argument("--ensemble", type=float, default=None, help="Student uses temporal ensembling (e.g. 0.01; negative favours newer plans)")
     p.add_argument("--n-action-steps", type=int, default=None, help="Student re-plans every N frames (trained with 10)")
@@ -89,7 +90,7 @@ def main() -> None:
     args = p.parse_args()
 
     cfg = load_config()
-    cfg["room"] = "living_room"
+    cfg["room"] = args.room or cfg["room"]
     print("Loading the student and preparing aim...")
     student = Student(args.policy, ensemble=args.ensemble, n_action_steps=args.n_action_steps)
     aimer = Aimer(cfg)
@@ -101,7 +102,7 @@ def main() -> None:
         start = {"shoulder_pan.pos": float(q[0]), "shoulder_lift.pos": float(q[1]), "elbow_flex.pos": float(q[2]),
                  "wrist_flex.pos": float(q[3]), "wrist_roll.pos": 0.0, "gripper.pos": 0.0}
         for who in (("student",) if args.skip_teacher else ("teacher", "student")):
-            argv = ["--backend", "sim", "--headless", "--room", "living_room",
+            argv = ["--backend", "sim", "--headless", "--room", cfg["room"],
                     "--duration", str(args.duration), "--seed", str(seed)]
             if args.video and ep == 0:
                 Path(REPO / args.video).mkdir(parents=True, exist_ok=True)

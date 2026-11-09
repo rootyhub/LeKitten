@@ -39,7 +39,7 @@ def main() -> None:
     p.add_argument("--episodes", type=int, default=2)
     p.add_argument("--duration", type=float, default=45.0, help="Play time per episode before the calm ending")
     p.add_argument("--root", default="datasets/lekitten_sim")
-    p.add_argument("--room", default="living_room")
+    p.add_argument("--room", default=None, help="Room from config.yaml (default: room:, the public sample_room)")
     p.add_argument("--first-seed", type=int, default=100)
     p.add_argument("--overwrite", action="store_true", help="Delete an existing dataset at --root first")
     args = p.parse_args()
@@ -49,6 +49,7 @@ def main() -> None:
     from backends.sim.camera import SimCamera
 
     cfg = load_config()
+    args.room = args.room or cfg["room"]
     cam = cfg["shared"]["camera"]
     root = REPO / args.root
     if root.exists():

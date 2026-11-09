@@ -2,7 +2,7 @@
 
 LeRobot already speaks our units (use_degrees=True): shoulder_pan.pos ... wrist_roll.pos in degrees,
 gripper.pos 0..100. config.yaml real.joint_map (sign + offset_deg per joint) lines the real arm up
-with the sim; it starts at sign 1 / offset 0 and is checked on arrival day with 3 known poses.
+with the sim; it starts at sign 1 / offset 0 and is checked with 3 known poses once the real arm is set up.
 """
 from __future__ import annotations
 

@@ -3,7 +3,7 @@
     python -m lekitten.play --backend sim --headless --video outputs/play_3d.mp4 \\
         --camera-video outputs/play_overhead.mp4 --duration 120
     mjpython -m lekitten.play --backend sim          # watch it live in the 3D window (macOS)
-    python -m lekitten.play --backend real           # the real arm (S7)
+    python -m lekitten.play --backend real           # the real arm (not built yet)
 
 Behaviours:
   lead_ahead      the dot stays a little ahead of the cat, so it chases

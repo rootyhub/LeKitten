@@ -7,7 +7,7 @@ The policy sees what it saw in training (desk + wrist camera at 320x240, joint a
 joint targets. Every proposal goes through safety.py (speed and joint limits, beam down, dot never on
 or across a cat, never through the couch); the laser guard alone decides whether the laser is on.
 After the play time, the session ends the same way as always: the dot stops, holds a moment, laser off.
-Sim only for now (the real arm needs its wrist camera wired in first, in T7).
+Sim only for now (the real arm needs its wrist camera wired in first).
 """
 from __future__ import annotations
 
@@ -164,10 +164,11 @@ def main() -> None:
     p.add_argument("--ensemble", type=float, default=None,
                    help="Temporal ensembling coefficient (e.g. 0.01; negative favours newer plans)")
     p.add_argument("--n-action-steps", type=int, default=None, help="Re-plan every N frames (trained with 10)")
-    p.set_defaults(room="living_room", headless=False)
+    p.set_defaults(headless=False)
     args = p.parse_args()
     args.backend = "sim"
     cfg = load_config(args.config)
+    args.room = args.room or cfg["room"]
     cfg["room"] = args.room
     print("Loading the student and preparing aim...")
     student = Student(args.policy, ensemble=args.ensemble, n_action_steps=args.n_action_steps)

@@ -16,7 +16,7 @@ shared:
 
   arm:
     max_joint_speed_deg_s: 60
-    joint_limits_deg: null   # null = the model's limits; arrival day narrows to the calibrated range
+    joint_limits_deg: null   # null = the model's limits; narrowed to the calibrated range on the real arm
 
   camera:               # overhead camera, same in sim and real
     width: 640
@@ -24,10 +24,10 @@ shared:
     fps: 30
     model: Lemi-V1.1 (fisheye)
     fov_deg: 120        # vertical FOV of the sim (pinhole) camera. The real lens is a fisheye
-                        # (~125 deg vertical in the 3040x2026 photo); real frames get undistorted (arrival day).
+                        # (~125 deg vertical in the 3040x2026 photo); real frames will need lens correction.
 
   laser:
-    mount_offset_m: [0.0, 0.0, 0.0]   # from the gripper's fixed jaw (S4)
+    mount_offset_m: [0.0, 0.0, 0.0]   # from the gripper's fixed jaw
     min_down_angle_deg: 10            # beam always at least this far below horizontal
     shallow_angle_deg: 25             # below this the dot smears (reach map colour)
 
@@ -72,7 +72,7 @@ rooms:
       B: {xyz: [1.25, -0.25, 0.65], yaw_deg: 90, surface: "round side table (scan says ~65 cm)"}
       C: {xyz: [0.80, -0.35, 0.00], yaw_deg: 90, surface: "floor, below the rug"}
     arm_spot: A
-    # On the orange desk, looking across the rug at the couch (photo 2026-11-08 15:35). Tuned in S4.
+    # On the desk, looking across the rug at the couch, matched to a photo from the real camera.
     camera: {xyz: [-0.30, 1.0, 1.10], look_at: [1.6, 1.0, 0.0]}
     play_zone: [[0.0, 0.0], [1.6, 0.0], [1.6, 2.4], [0.0, 2.4]]     # the rug
     hide_spots: [[1.25, -0.23], [0.19, 2.2]]   # fake cat hides under the side table / behind the wood stand
@@ -109,7 +109,7 @@ real:
   relay_port: null      # LCUS-1 USB relay; auto-detected if null
   camera_index: null    # OpenCV index of the overhead webcam (lerobot-find-cameras opencv)
   camera_rotation_deg: 0   # 90/180/270 if the camera ends up mounted turned
-  joint_map:            # checked on arrival day with 3 known poses
+  joint_map:            # checked with 3 known poses on the real arm
     shoulder_pan.pos:  {sign: 1, offset_deg: 0.0}
     shoulder_lift.pos: {sign: 1, offset_deg: 0.0}
     elbow_flex.pos:    {sign: 1, offset_deg: 0.0}

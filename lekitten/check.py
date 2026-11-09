@@ -2,7 +2,7 @@
 
     mjpython -m lekitten.check --backend sim                 # with the 3D window (macOS)
     python   -m lekitten.check --backend sim --headless --video outputs/check.mp4
-    python   -m lekitten.check --backend real                # on the home Mac (S7)
+    python   -m lekitten.check --backend real                # the real arm (not built yet)
 """
 from __future__ import annotations
 
