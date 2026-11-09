@@ -10,6 +10,7 @@ Measured during the play time of each episode (the landing on the toy is the sam
   in the sweet spot share of laser-on time with the dot 0.35-0.70 m from the cat (close enough to chase,
                   outside the safety margin)
   ended on toy    the session ended correctly
+  jitter          average size of frame-to-frame changes in joint speed (deg/frame^2); lower is smoother
 Writes outputs/eval_<name>.json for the Training Lab page.
 """
 from __future__ import annotations
@@ -37,6 +38,7 @@ class Meter:
         self.duration, self.t0 = duration, None
         self.ticks = self.on = 0
         self.dist = []
+        self.cmds = []  # commanded aiming joints, for the jitter score
 
     def __call__(self, b, state, frame, action):
         t = b.world.data.time
@@ -44,6 +46,7 @@ class Meter:
         if t - self.t0 >= self.duration:
             return
         self.ticks += 1
+        self.cmds.append([action[j] for j in ("shoulder_pan.pos", "shoulder_lift.pos", "elbow_flex.pos", "wrist_flex.pos")])
         if b.laser.is_on:
             self.on += 1
             d = b.laser.last_dot
@@ -59,8 +62,10 @@ def summarize(rows: list[dict]) -> dict:
     for r in rows:
         for k, v in r["blocked"].items():
             blocked[k] = blocked.get(k, 0) + v
+    jit = [float(np.abs(np.diff(np.array(r["cmds"]), 2, axis=0)).max(1).mean()) for r in rows if len(r["cmds"]) > 3]
     return {
         "episodes": len(rows),
+        "jitter": float(np.mean(jit)) if jit else None,
         "laser_on": on / max(1, ticks),
         "median_dot_cat_m": float(np.median(dist)) if len(dist) else None,
         "sweet_spot": float(((dist >= SWEET[0]) & (dist <= SWEET[1])).mean()) if len(dist) else None,
@@ -78,12 +83,13 @@ def main() -> None:
     p.add_argument("--first-seed", type=int, default=1000, help="Different from the training seeds (100-149)")
     p.add_argument("--name", default="t6")
     p.add_argument("--video", default=None, help="Folder: save teacher/student 3D videos of episode 0 + side by side")
+    p.add_argument("--ensemble", type=float, default=None, help="Student uses temporal ensembling (e.g. 0.01)")
     args = p.parse_args()
 
     cfg = load_config()
     cfg["room"] = "living_room"
     print("Loading the student and preparing aim...")
-    student = Student(args.policy)
+    student = Student(args.policy, ensemble=args.ensemble)
     aimer = Aimer(cfg)
     rng = np.random.default_rng(args.first_seed)
     rows = {"teacher": [], "student": []}
@@ -110,7 +116,7 @@ def main() -> None:
                 st = run_student(student, pa, aimer, start_pose=start, on_tick=m, verbose=False)
                 blocked = st["blocked"]
             rows[who].append({"ticks": m.ticks, "on": m.on, "dist": m.dist, "blocked": blocked,
-                              "toy": st["ended_on_toy"]})
+                              "toy": st["ended_on_toy"], "cmds": m.cmds})
         t, s = rows["teacher"][-1], rows["student"][-1]
         print(f"episode {ep:2d}  seed {seed}  laser on: teacher {t['on'] / max(1, t['ticks']):4.0%}  "
               f"student {s['on'] / max(1, s['ticks']):4.0%}")

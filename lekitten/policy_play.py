@@ -38,7 +38,9 @@ def reason_group(why: str) -> str:
 
 
 class Student:
-    def __init__(self, path: str, device: str = "mps"):
+    def __init__(self, path: str, device: str = "mps", ensemble: float | None = None):
+        """ensemble: if set (e.g. 0.01), use ACT's temporal ensembling: re-plan every frame and
+        average the overlapping plans for smoother motion (no retraining needed)."""
         import torch
         from lerobot.policies.act.modeling_act import ACTPolicy
         from lerobot.policies.factory import make_pre_post_processors
@@ -47,6 +49,11 @@ class Student:
         self.policy.to(device)
         self.policy.eval()
         self.pre, self.post = make_pre_post_processors(self.policy.config, pretrained_path=path)
+        if ensemble is not None:
+            from lerobot.policies.act.modeling_act import ACTTemporalEnsembler
+            self.policy.config.temporal_ensemble_coeff = float(ensemble)
+            self.policy.config.n_action_steps = 1
+            self.policy.temporal_ensembler = ACTTemporalEnsembler(float(ensemble), self.policy.config.chunk_size)
         self.size = tuple(self.policy.config.input_features["observation.images.overhead"].shape[1:])  # (H, W)
 
     def reset(self) -> None:
@@ -164,13 +171,15 @@ def run_student(student: Student, args: argparse.Namespace, aimer: Aimer, start_
 def main() -> None:
     p = build_parser()
     p.add_argument("--policy", required=True, help="Path to a checkpoint's pretrained_model folder")
+    p.add_argument("--ensemble", type=float, default=None,
+                   help="Temporal ensembling coefficient (e.g. 0.01) for smoother motion")
     p.set_defaults(room="living_room", headless=False)
     args = p.parse_args()
     args.backend = "sim"
     cfg = load_config(args.config)
     cfg["room"] = args.room
     print("Loading the student and preparing aim...")
-    student = Student(args.policy)
+    student = Student(args.policy, ensemble=args.ensemble)
     aimer = Aimer(cfg)
     args.cat_seed = args.seed
     run_student(student, args, aimer)
