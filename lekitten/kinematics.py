@@ -38,10 +38,11 @@ class Beam:
         base = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base")
         self.arm_root = model.body_rootid[base]
         self.base_body = base
-        dot = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "laser_dot")
         skip_bodies = {b for b in range(model.nbody) if model.body_rootid[b] == self.arm_root}
-        if dot >= 0:
-            skip_bodies.add(dot)
+        for name in ("laser_dot", "laser_beam"):
+            bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
+            if bid >= 0:
+                skip_bodies.add(bid)
         self.skip_geom = np.array([model.geom_bodyid[g] in skip_bodies for g in range(model.ngeom)])
         self.arm_geom = np.array([model.body_rootid[model.geom_bodyid[g]] == self.arm_root
                                   and model.geom_bodyid[g] != 0 for g in range(model.ngeom)])

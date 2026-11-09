@@ -20,7 +20,8 @@ class Volume:
     def contains(self, pts: np.ndarray) -> np.ndarray:
         pts = np.atleast_2d(pts)
         inside = _Path(self.polygon).contains_points(pts[:, :2])
-        return inside & (pts[:, 2] >= self.z_min) & (pts[:, 2] <= self.z_max)
+        # 1 cm tolerance: a dot "on the floor" can come out a hair below z=0 from rounding.
+        return inside & (pts[:, 2] >= self.z_min - 0.01) & (pts[:, 2] <= self.z_max)
 
 
 @dataclass

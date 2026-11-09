@@ -44,9 +44,23 @@ and fill in the `living_room` entry in `config.yaml`. Without a scan, the sim us
 ## Try it
 
 ```bash
-mjpython -m lekitten.check --backend sim     # watch each joint wiggle in the 3D window (macOS needs mjpython)
-python -m lekitten.check --backend sim --headless --video outputs/check.mp4
+mjpython -m lekitten.check --backend sim                 # each joint wiggles in the 3D window (macOS needs mjpython)
+mjpython -m lekitten.play  --backend sim                 # the full game with the fake cat
+python   -m lekitten.play  --backend sim --headless --duration 120 \
+         --video outputs/play_3d.mp4 --camera-video outputs/play_overhead.mp4
+python   -m lekitten.tools.reach_map                     # where can the dot go from each arm spot?
+python   -m lekitten.tools.aim_test                      # how accurately does it aim?
+python   -m lekitten.check --backend real --dry-run      # rehearse the real arm without hardware
+pytest                                                   # safety, aiming and zone tests
 ```
+
+On the real arm, follow [docs/ARRIVAL_DAY.md](docs/ARRIVAL_DAY.md).
+
+## Safety
+
+Class 2 laser (under 1 mW), plus rules in `lekitten/safety.py` that every command goes through, in sim and real:
+the beam always points down, never at or across a cat, never through the couch where people sit;
+the laser is off by default, off when no cat is seen, off on any error or exit, and every session ends on the toy.
 
 ## Credits
 
