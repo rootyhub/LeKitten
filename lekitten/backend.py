@@ -41,6 +41,6 @@ def make_backend(args: argparse.Namespace) -> Backend:
     if name == "sim":
         from backends.sim import make_sim_backend
         return make_sim_backend(cfg, viewer=not args.headless, video=args.video,
-                                room=args.room, spot=args.spot)
+                                room=args.room, spot=args.spot, cat_seed=getattr(args, "cat_seed", 3))
     from backends.real import make_real_backend
     return make_real_backend(cfg, dry_run=args.dry_run)

@@ -110,6 +110,7 @@ def build_model(cfg: dict, room: str | None = None, spot: str | None = None,
         g = beam.add_geom()
         g.name, g.type, g.size = "laser_beam", mujoco.mjtGeom.mjGEOM_CYLINDER, [0.002, 0.01, 0]
         g.rgba, g.contype, g.conaffinity = [1, 0.1, 0.1, 0.55], 0, 0
+        g.group = 5  # display-only: shown in the 3D videos, hidden from the robot's cameras
 
     spec.visual.global_.offwidth = max(spec.visual.global_.offwidth, 1920)
     spec.visual.global_.offheight = max(spec.visual.global_.offheight, 1080)

@@ -14,7 +14,7 @@ from .world import SimWorld
 
 
 def make_sim_backend(cfg: dict, viewer: bool = True, video: str | None = None,
-                     room: str | None = None, spot: str | None = None) -> Backend:
+                     room: str | None = None, spot: str | None = None, cat_seed: int = 3) -> Backend:
     if room:
         cfg = {**cfg, "room": room}
     model = build_model(cfg, spot=spot)
@@ -26,7 +26,7 @@ def make_sim_backend(cfg: dict, viewer: bool = True, video: str | None = None,
     world.set_video_camera(lookat=[*mid, 0.2], distance=3.4, azimuth=200, elevation=-58)
     cam = cfg["shared"]["camera"]
     laser = SimLaser(world, cfg["shared"]["laser"]["mount_offset_m"])
-    cat = FakeCat(world, rc["play_zone"], rc.get("hide_spots", []), laser=laser)
+    cat = FakeCat(world, rc["play_zone"], rc.get("hide_spots", []), laser=laser, seed=cat_seed)
     b = Backend(
         name="sim",
         arm=SimArm(world, cfg["sim"]["joint_map"]),

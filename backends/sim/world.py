@@ -69,6 +69,8 @@ class SimWorld:
         self.model.vis.global_.offwidth = max(self.model.vis.global_.offwidth, w)
         self.model.vis.global_.offheight = max(self.model.vis.global_.offheight, h)
         self._renderer = mujoco.Renderer(self.model, height=h, width=w)
+        self._video_opt = mujoco.MjvOption()
+        self._video_opt.geomgroup[5] = 1  # show display-only helpers (the beam line) in 3D videos
         self._cam = mujoco.MjvCamera()
         mujoco.mjv_defaultFreeCamera(self.model, self._cam)
         self._cam.distance, self._cam.azimuth, self._cam.elevation = 0.9, 135, -25
@@ -89,7 +91,7 @@ class SimWorld:
             self._cam.distance, self._cam.azimuth, self._cam.elevation = distance, azimuth, elevation
 
     def _write_frame(self) -> None:
-        self._renderer.update_scene(self.data, self._cam)
+        self._renderer.update_scene(self.data, self._cam, scene_option=self._video_opt)
         self._video.stdin.write(np.ascontiguousarray(self._renderer.render()).tobytes())
 
     def close(self) -> None:

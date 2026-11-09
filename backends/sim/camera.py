@@ -15,7 +15,11 @@ class SimCamera(OverheadCamera):
         self.world = world
         self.name = name
         self._renderer = mujoco.Renderer(world.model, height=height, width=width)
+        # What a real camera sees: no display-only helpers (group 5, e.g. the beam line;
+        # a real Class 2 beam is invisible in air, only the dot shows).
+        self._opt = mujoco.MjvOption()
+        self._opt.geomgroup[5] = 0
 
     def read(self) -> np.ndarray:
-        self._renderer.update_scene(self.world.data, camera=self.name)
+        self._renderer.update_scene(self.world.data, camera=self.name, scene_option=self._opt)
         return self._renderer.render().copy()  # RGB uint8 (480, 640, 3)

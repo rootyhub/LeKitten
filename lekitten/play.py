@@ -25,6 +25,7 @@ from .aim import Aimer
 from .backend import add_backend_args, make_backend
 from .config import load_config
 from .model import room_cfg
+from .motion import move_to
 from .safety import LaserGuard, Safety, clamp_to_zone
 from .zones import Zones
 
@@ -161,14 +162,24 @@ class FrameWriter:
         print(f"Saved video: {self.path}")
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     add_backend_args(p)
     p.add_argument("--duration", type=float, default=None, help="Session length in s (default: config play.session_s)")
     p.add_argument("--camera-video", default=None, help="Save the overhead camera's view to this .mp4")
     p.add_argument("--seed", type=int, default=0)
-    args = p.parse_args()
+    return p
 
+
+def main() -> None:
+    run(build_parser().parse_args())
+
+
+def run(args: argparse.Namespace, on_tick=None, rate_hz: int = RATE_HZ, aimer: Aimer | None = None,
+        start_pose: dict | None = None, verbose: bool = True) -> dict:
+    """One play session. on_tick(backend, state, frame, action) is called every tick (used by record.py).
+    Returns stats."""
+    log = print if verbose else (lambda *a, **k: None)
     cfg = load_config(args.config)
     if args.room:
         cfg["room"] = args.room
@@ -177,8 +188,9 @@ def main() -> None:
     duration = min(args.duration or play["session_s"], s["max_session_s"])
     rng = np.random.default_rng(args.seed)
 
-    print("Preparing aim (a few seconds)...")
-    aimer = Aimer(cfg, spot=args.spot)
+    if aimer is None:
+        log("Preparing aim (a few seconds)...")
+        aimer = Aimer(cfg, spot=args.spot)
     zones = aimer.zones
     safety = Safety(cfg, zones, aimer.kin)
     spot = rc["arm_spots"][args.spot or rc["arm_spot"]]
@@ -192,15 +204,17 @@ def main() -> None:
     cam_writer = None
     if args.camera_video:
         c = cfg["shared"]["camera"]
-        cam_writer = FrameWriter(args.camera_video, c["width"], c["height"], RATE_HZ)
+        cam_writer = FrameWriter(args.camera_video, c["width"], c["height"], rate_hz)
 
-    dt = 1.0 / RATE_HZ
-    stats = {"ticks": 0, "laser_on": 0, "blocked": {}}
+    dt = 1.0 / rate_hz
+    stats = {"ticks": 0, "laser_on": 0, "blocked": {}, "ended_on_toy": False}
     guard_kw = dict(no_cat_timeout_s=s["no_cat_timeout_s"], max_session_s=duration + s["toy_hold_s"] + 10)
     if sim_clock:
         guard_kw["clock"] = sim_clock
     try:
         b.arm.connect()
+        if start_pose:
+            move_to(b, start_pose, cfg["shared"]["arm"]["max_joint_speed_deg_s"])
         with LaserGuard(b.laser, **guard_kw) as guard:
             current = b.arm.read_joints()
             dot = zones.play.polygon.mean(0)
@@ -208,6 +222,7 @@ def main() -> None:
             blocked_since = None
             while True:
                 now = guard.elapsed
+                state = b.arm.read_joints()
                 frame = b.camera.read()
                 if cam_writer:
                     cam_writer.write(frame)
@@ -234,10 +249,11 @@ def main() -> None:
                         hold_until = hold_until or now + s["toy_hold_s"]
                         if now >= hold_until:
                             guard.set(False)
-                            print("Landed on the toy, held, laser off. Session done.")
+                            stats["ended_on_toy"] = True
+                            log("Landed on the toy, held, laser off. Session done.")
                             break
                     if now > duration + 15:
-                        print("Couldn't reach the toy in time; laser off.")
+                        log("Couldn't reach the toy in time; laser off.")
                         break
 
                 aim = aimer.aim_at(dot[0], dot[1], current)
@@ -260,16 +276,19 @@ def main() -> None:
                 if why and want_on:
                     key = "can't aim there" if aim is None else why
                     stats["blocked"][key] = stats["blocked"].get(key, 0) + 1
+                if on_tick:
+                    on_tick(b, state, frame, dict(current))
                 b.wait(dt)
         b.arm.disconnect()
     finally:
         if cam_writer:
             cam_writer.close()
         b.close()
-    print(f"Laser on {stats['laser_on'] / max(1, stats['ticks']):.0%} of the time.")
+    log(f"Laser on {stats['laser_on'] / max(1, stats['ticks']):.0%} of the time.")
     if stats["blocked"]:
-        print("Laser held off because:", ", ".join(f"{k} ({v} ticks)" for k, v in
-                                                   sorted(stats["blocked"].items(), key=lambda kv: -kv[1])))
+        log("Laser held off because:", ", ".join(f"{k} ({v} ticks)" for k, v in
+                                                 sorted(stats["blocked"].items(), key=lambda kv: -kv[1])))
+    return stats
 
 
 if __name__ == "__main__":
