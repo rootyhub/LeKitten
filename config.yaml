@@ -36,7 +36,6 @@ shared:
     no_cat_timeout_s: 10          # laser off when no cat is seen this long
     max_session_s: 300            # hard stop
     end_hold_s: 1                 # end of session: the dot stops where it is, holds this long, then off
-    toy_hold_s: 3                 # TEMPORARY: only for the evaluation already running; remove after
 
   play:
     session_s: 180
