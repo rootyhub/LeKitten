@@ -13,6 +13,8 @@ outputs/
 *token*
 # Videos and datasets
 *.mp4
+# ...except videos deliberately published for the README
+!docs/media/*.mp4
 *.mov
 *.avi
 *.mkv

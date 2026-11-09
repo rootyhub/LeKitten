@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import os
 import warnings
 
 import mujoco
@@ -82,6 +83,25 @@ def build_model(cfg: dict, room: str | None = None, spot: str | None = None,
     c.pos = cc["xyz"]
     c.quat = look_at_quat(cc["xyz"], cc["look_at"])
     c.fovy = cam["fov_deg"]
+
+    # Video tooling only: LEKITTEN_VIDEO_BG=ff00ff paints empty background (e.g. holes in a room scan)
+    # a solid key colour so it can be found and filled in afterwards. Never set during training.
+    bg = os.environ.get("LEKITTEN_VIDEO_BG") if visual else None
+    if bg:
+        rgb = [int(bg[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        t = spec.add_texture()
+        t.name, t.type, t.builtin = "key_sky", mujoco.mjtTexture.mjTEXTURE_SKYBOX, mujoco.mjtBuiltin.mjBUILTIN_FLAT
+        t.rgb1, t.rgb2, t.width, t.height = rgb, rgb, 64, 64
+        spec.visual.rgba.haze = [*rgb, 1]
+        floor = os.environ.get("LEKITTEN_VIDEO_FLOOR")  # e.g. 3f322d: a floor slab under the room's footprint
+        box = os.environ.get("LEKITTEN_VIDEO_FLOOR_BOX")  # "xmin,ymin,xmax,ymax" in the room frame
+        if floor and box:
+            x0, y0, x1, y1 = map(float, box.split(","))
+            g = spec.worldbody.add_geom()
+            g.name, g.type = "video_floor", mujoco.mjtGeom.mjGEOM_BOX
+            g.size, g.pos = [(x1 - x0) / 2, (y1 - y0) / 2, 0.004], [(x0 + x1) / 2, (y0 + y1) / 2, -0.025]
+            g.rgba = [int(floor[i:i + 2], 16) / 255 for i in (0, 2, 4)] + [1]
+            g.contype, g.conaffinity, g.group = 0, 0, 2  # display only; the laser never lands on it
 
     if visual:  # fake cat (group 2: drawn, but not a laser target; safety keeps the dot off it)
         cat = spec.worldbody.add_body(name="cat", mocap=True, pos=[0, 0, -1])

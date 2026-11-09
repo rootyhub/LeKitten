@@ -4,7 +4,9 @@ Teaching a small robot arm to play laser pointer with my two cats, and learning 
 
 > **Status: simulation only.** Everything here runs in a physics simulator. The real arm (an [SO-101](https://github.com/TheRobotStudio/SO-ARM100)) hasn't been used yet; that's the next stage.
 
-![The simulated arm leading a fake cat around a rug with a laser dot](docs/images/sim.gif)
+![Teacher (hand-written rules) and student (trained policy) leading a fake cat around my scanned living room](docs/images/teacher_vs_student.gif)
+
+*Left: the hand-written teacher. Right: the trained student. Same fake cat, same start. The room is a phone LiDAR scan of my living room ([Polycam](https://poly.cam)); the scan has gaps where the phone never saw a surface (ceiling, high walls, behind furniture), and they're filled in for this video only. [Full 30-second video](docs/media/teacher_vs_student.mp4).*
 
 ## What this is
 
@@ -59,7 +61,9 @@ The student is shown with weighted smoothing (explained below).
 
 ## Run the same experiment
 
-Tested on a Mac with Apple Silicon. It should also work on Linux with an NVIDIA GPU (use `--policy.device=cuda`); that hasn't been tested yet. The commands use the public **sample room**, so you don't need a scan of your own home.
+Tested on a Mac with Apple Silicon. It should also work on Linux with an NVIDIA GPU (use `--policy.device=cuda`); that hasn't been tested yet. The commands use the public **sample room**, so you don't need a scan of your own home:
+
+![The sample room: the arm on a table next to a rug, with a fake cat chasing the laser dot](docs/images/sim.gif)
 
 **1. Set up** (about 10 minutes)
 
@@ -126,6 +130,8 @@ python -m lekitten.tools.reach_map --room living_room                           
 ```
 
 Then fill in the `living_room` entry in `config.yaml` (arm spots, camera, rug, couch) and add `--room living_room` to the commands above. My own results above came from my scanned living room.
+
+Scans have gaps the simulator sees through (black in videos). For nicer videos only, render with a key-colour background and fill the gaps from the surrounding scan; see `lekitten/tools/fill_video_holes.py`. Training and evaluation never use this.
 
 ## What's in the repo
 
