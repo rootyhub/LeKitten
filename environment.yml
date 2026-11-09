@@ -10,7 +10,7 @@ dependencies:
   - pip
   - pip:
       # OpenCV comes from lerobot (opencv-python-headless). Do NOT add opencv-python.
-      - lerobot[core_scripts,feetech]==0.7.0
+      - lerobot[core_scripts,feetech,training]==0.7.0   # training = accelerate etc. for lerobot-train
       - mujoco==4.0.0
       - pyyaml
       - matplotlib
