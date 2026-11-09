@@ -38,9 +38,12 @@ def reason_group(why: str) -> str:
 
 
 class Student:
-    def __init__(self, path: str, device: str = "mps", ensemble: float | None = None):
+    def __init__(self, path: str, device: str = "mps", ensemble: float | None = None,
+                 n_action_steps: int | None = None):
         """ensemble: if set (e.g. 0.01), use ACT's temporal ensembling: re-plan every frame and
-        average the overlapping plans for smoother motion (no retraining needed)."""
+        average the overlapping plans for smoother motion (no retraining needed). Positive weighs older
+        plans more (0.01 = ACT default), negative weighs newer plans more.
+        n_action_steps: how many actions of each plan to run before re-planning (trained with 10)."""
         import torch
         from lerobot.policies.act.modeling_act import ACTPolicy
         from lerobot.policies.factory import make_pre_post_processors
@@ -49,6 +52,8 @@ class Student:
         self.policy.to(device)
         self.policy.eval()
         self.pre, self.post = make_pre_post_processors(self.policy.config, pretrained_path=path)
+        if n_action_steps is not None and ensemble is None:
+            self.policy.config.n_action_steps = int(n_action_steps)
         if ensemble is not None:
             from lerobot.policies.act.modeling_act import ACTTemporalEnsembler
             self.policy.config.temporal_ensemble_coeff = float(ensemble)
@@ -157,14 +162,15 @@ def main() -> None:
     p = build_parser()
     p.add_argument("--policy", required=True, help="Path to a checkpoint's pretrained_model folder")
     p.add_argument("--ensemble", type=float, default=None,
-                   help="Temporal ensembling coefficient (e.g. 0.01) for smoother motion")
+                   help="Temporal ensembling coefficient (e.g. 0.01; negative favours newer plans)")
+    p.add_argument("--n-action-steps", type=int, default=None, help="Re-plan every N frames (trained with 10)")
     p.set_defaults(room="living_room", headless=False)
     args = p.parse_args()
     args.backend = "sim"
     cfg = load_config(args.config)
     cfg["room"] = args.room
     print("Loading the student and preparing aim...")
-    student = Student(args.policy, ensemble=args.ensemble)
+    student = Student(args.policy, ensemble=args.ensemble, n_action_steps=args.n_action_steps)
     aimer = Aimer(cfg)
     args.cat_seed = args.seed
     run_student(student, args, aimer)

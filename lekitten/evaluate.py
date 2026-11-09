@@ -83,13 +83,15 @@ def main() -> None:
     p.add_argument("--first-seed", type=int, default=1000, help="Different from the training seeds (100-149)")
     p.add_argument("--name", default="t6")
     p.add_argument("--video", default=None, help="Folder: save teacher/student 3D videos of episode 0 + side by side")
-    p.add_argument("--ensemble", type=float, default=None, help="Student uses temporal ensembling (e.g. 0.01)")
+    p.add_argument("--ensemble", type=float, default=None, help="Student uses temporal ensembling (e.g. 0.01; negative favours newer plans)")
+    p.add_argument("--n-action-steps", type=int, default=None, help="Student re-plans every N frames (trained with 10)")
+    p.add_argument("--skip-teacher", action="store_true", help="Only run the student (teacher results don't change)")
     args = p.parse_args()
 
     cfg = load_config()
     cfg["room"] = "living_room"
     print("Loading the student and preparing aim...")
-    student = Student(args.policy, ensemble=args.ensemble)
+    student = Student(args.policy, ensemble=args.ensemble, n_action_steps=args.n_action_steps)
     aimer = Aimer(cfg)
     rng = np.random.default_rng(args.first_seed)
     rows = {"teacher": [], "student": []}
@@ -98,7 +100,7 @@ def main() -> None:
         q = aimer.lib_q[rng.integers(len(aimer.lib_q))]
         start = {"shoulder_pan.pos": float(q[0]), "shoulder_lift.pos": float(q[1]), "elbow_flex.pos": float(q[2]),
                  "wrist_flex.pos": float(q[3]), "wrist_roll.pos": 0.0, "gripper.pos": 0.0}
-        for who in ("teacher", "student"):
+        for who in (("student",) if args.skip_teacher else ("teacher", "student")):
             argv = ["--backend", "sim", "--headless", "--room", "living_room",
                     "--duration", str(args.duration), "--seed", str(seed)]
             if args.video and ep == 0:
@@ -117,11 +119,14 @@ def main() -> None:
                 blocked = st["blocked"]
             rows[who].append({"ticks": m.ticks, "on": m.on, "dist": m.dist, "blocked": blocked,
                               "clean": st["ended_cleanly"], "cmds": m.cmds})
-        t, s = rows["teacher"][-1], rows["student"][-1]
-        print(f"episode {ep:2d}  seed {seed}  laser on: teacher {t['on'] / max(1, t['ticks']):4.0%}  "
-              f"student {s['on'] / max(1, s['ticks']):4.0%}")
+        s = rows["student"][-1]
+        t = rows["teacher"][-1] if rows["teacher"] else None
+        print(f"episode {ep:2d}  seed {seed}  laser on: "
+              + (f"teacher {t['on'] / max(1, t['ticks']):4.0%}  " if t else "")
+              + f"student {s['on'] / max(1, s['ticks']):4.0%}", flush=True)
 
-    out = {who: summarize(r) for who, r in rows.items()}
+    out = {who: summarize(r) for who, r in rows.items() if r}
+    out["settings"] = {"ensemble": args.ensemble, "n_action_steps": args.n_action_steps}
     out["policy"] = args.policy
     path = REPO / f"outputs/eval_{args.name}.json"
     path.write_text(json.dumps(out, indent=2))
@@ -129,7 +134,7 @@ def main() -> None:
                       for k, v in out.items()}, indent=2))
     print(f"Saved {path.relative_to(REPO)}")
 
-    if args.video:
+    if args.video and not args.skip_teacher:
         d = REPO / args.video
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", str(d / "teacher.mp4"), "-i", str(d / "student.mp4"),
                         "-filter_complex",
