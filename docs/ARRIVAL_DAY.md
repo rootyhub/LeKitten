@@ -96,7 +96,7 @@ python -m lekitten.play --backend real --duration 60
 
 Until the cat detector exists (built next, on footage from this camera), the real program sees no cats, so the **laser stays off** by design and the arm only moves. The first sessions with the laser on happen once the detector is trained.
 
-Every session ends with the dot on the toy, a short hold, then laser off. **Ctrl+C at any time turns the laser off** and stops the arm.
+Every session ends with the dot stopping where it is, a short hold, then laser off. **Ctrl+C at any time turns the laser off** and stops the arm.
 
 ---
 

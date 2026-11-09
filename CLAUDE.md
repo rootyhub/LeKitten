@@ -22,7 +22,7 @@ Implementations live in backends/sim/ (MuJoCo) and backends/real/ (LeRobot SO-10
 
 ## Shared conventions (must match the real robot)
 - Joint names and units = LeRobot SO-101: shoulder_pan.pos, shoulder_lift.pos, elbow_flex.pos, wrist_flex.pos, wrist_roll.pos in degrees; gripper.pos 0 (open) to 100 (closed). The sim backend converts to/from MuJoCo radians using joint_map (sign + offset per joint) in config.yaml. The real joint_map is verified on arrival day.
-- Room frame: meters, z up, origin at one floor corner of the play zone. Arm base pose, camera pose, play zone, toy spot and no-aim zones are all defined once in config.yaml in this frame and used by both backends.
+- Room frame: meters, z up, origin at one floor corner of the play zone. Arm base pose, camera pose, play zone and no-aim zones are all defined once in config.yaml in this frame and used by both backends.
 - Overhead camera: 640x480 RGB at 30 fps in both backends; the sim camera's field of view matches the real camera in config.yaml.
 - Laser: a ray from the gripper's fixed jaw along the gripper's forward axis, with the mount offset in config.yaml. The dot is where the ray first hits the floor or furniture.
 - Before writing any real-backend code, check the installed lerobot version's actual class and config names for the SO-101 follower (they have changed between versions).
@@ -32,7 +32,7 @@ Implementations live in backends/sim/ (MuJoCo) and backends/real/ (LeRobot SO-10
 - The dot is never inside any cat's radius plus a margin, and never inside a no-aim zone (couch, where people sit).
 - Laser defaults to OFF. It turns off when no cat is seen for N seconds, on any error, on exit, and after the max session length.
 - Joint speed limits and joint limits inside the calibrated range.
-- Every session ends by landing the dot on the toy spot, holding briefly, then laser off.
+- Every session ends calmly: the dot stops where it is, holds briefly (end_hold_s), then laser off.
 
 ## Privacy: this repo is PUBLIC
 Never commit: sim/private_scan/ (the scan and photos of the owner's home), calibration/ (real-arm calibration), outputs/, tokens or keys or .env files, videos (*.mp4, *.mov), datasets. Keep them in .gitignore. sim/scenes/sample_room.xml is the public stand-in so others can run the sim without a scan.

@@ -6,7 +6,7 @@
 The policy sees what it saw in training (desk + wrist camera at 320x240, joint angles) and proposes
 joint targets. Every proposal goes through safety.py (speed and joint limits, beam down, dot never on
 or across a cat, never through the couch); the laser guard alone decides whether the laser is on.
-After the play time, the session ends the same way as always: dot to the toy, hold, laser off.
+After the play time, the session ends the same way as always: the dot stops, holds a moment, laser off.
 Sim only for now (the real arm needs its wrist camera wired in first, in T7).
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ from .backend import make_backend
 from .config import load_config
 from .interfaces import JOINTS
 from .model import room_cfg
-from .play import build_parser, step_toward
+from .play import build_parser
 from .safety import LaserGuard, Safety
 
 FPS = 30
@@ -70,7 +70,7 @@ class Student:
         obs = {"observation.state": t.tensor([state[j] for j in JOINTS], dtype=t.float32),
                "observation.images.overhead": self._img(overhead),
                "observation.images.wrist": self._img(wrist),
-               "task": "Lead the cat around the rug with the laser dot, then land it on the toy."}
+               "task": "Lead the cat around the rug with the laser dot."}
         with t.inference_mode():
             a = self.post(self.policy.select_action(self.pre(obs)))
         a = a.squeeze(0).float().cpu().numpy()
@@ -93,7 +93,7 @@ def run_student(student: Student, args: argparse.Namespace, aimer: Aimer, start_
     cam = cfg["shared"]["camera"]
     wrist = SimCamera(b.world, "wrist_cam", width=cam["width"], height=cam["height"])
     dt = 1.0 / FPS
-    stats = {"ticks": 0, "laser_on": 0, "blocked": {}, "ended_on_toy": False, "play_ticks": 0,
+    stats = {"ticks": 0, "laser_on": 0, "blocked": {}, "ended_cleanly": False, "play_ticks": 0,
              "play_laser_on": 0, "cat_dot": []}
     student.reset()
     try:
@@ -101,7 +101,7 @@ def run_student(student: Student, args: argparse.Namespace, aimer: Aimer, start_
         if start_pose:
             move_to(b, start_pose, cfg["shared"]["arm"]["max_joint_speed_deg_s"])
         with LaserGuard(b.laser, no_cat_timeout_s=s["no_cat_timeout_s"],
-                        max_session_s=duration + s["toy_hold_s"] + 20,
+                        max_session_s=duration + s["end_hold_s"] + 20,
                         clock=lambda: b.world.data.time) as guard:
             current = b.arm.read_joints()
             dot = None
@@ -124,29 +124,14 @@ def run_student(student: Student, args: argparse.Namespace, aimer: Aimer, start_
                     if why:
                         key = reason_group(why)
                         stats["blocked"][key] = stats["blocked"].get(key, 0) + 1
-                else:  # end of session, same as always: dot to the toy, hold, laser off
-                    if dot is None:
-                        aimer.kin.set_joints(current)
-                        d = aimer.kin.dot()
-                        dot = d.point[:2] if d.point is not None else zones.toy.copy()
-                    dot = step_toward(dot, zones.toy, play["dot_speed_m_s"] * dt)
-                    aim = aimer.aim_at(dot[0], dot[1], current)
-                    verdict = None
-                    if aim is not None:
-                        target = safety.limit_speed(current, aim.joints, dt)
-                        verdict = safety.pose_ok(target, cats)
-                        b.arm.send_joints(target)
-                        current = target
-                    guard.set(aim is not None, verdict)
-                    if np.linalg.norm(dot - zones.toy) < 0.01:
-                        hold_until = hold_until or now + s["toy_hold_s"]
-                        if now >= hold_until:
-                            guard.set(False)
-                            stats["ended_on_toy"] = True
-                            log("Landed on the toy, held, laser off. Session done.")
-                            break
-                    if now > duration + 15:
-                        log("Couldn't reach the toy in time; laser off.")
+                else:  # end of session, same as always: the dot stops, holds a moment, laser off
+                    b.arm.send_joints(current)          # hold still where the student left it
+                    guard.set(True, safety.pose_ok(current, cats))
+                    hold_until = hold_until or now + s["end_hold_s"]
+                    if now >= hold_until:
+                        guard.set(False)
+                        stats["ended_cleanly"] = True
+                        log("Session over: dot held still, laser off.")
                         break
                 stats["ticks"] += 1
                 stats["laser_on"] += b.laser.is_on

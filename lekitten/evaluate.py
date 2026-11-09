@@ -3,13 +3,13 @@
     python -m lekitten.evaluate --policy outputs/train/t4/checkpoints/last/pretrained_model --episodes 20
     python -m lekitten.evaluate --policy ... --episodes 1 --video outputs/compare     # + side-by-side video
 
-Measured during the play time of each episode (the landing on the toy is the same for both):
+Measured during the play time of each episode (the calm ending is the same for both):
   laser on        share of time every safety rule allowed the laser on
   refused share   share of play time safety held the laser off, by reason
   dot-cat         median distance from the dot to the cat while the laser is on
   in the sweet spot share of laser-on time with the dot 0.35-0.70 m from the cat (close enough to chase,
                   outside the safety margin)
-  ended on toy    the session ended correctly
+  ended cleanly   the session ended correctly (dot held still, laser off)
   jitter          average size of frame-to-frame changes in joint speed (deg/frame^2); lower is smoother
 Writes outputs/eval_<name>.json for the Training Lab page.
 """
@@ -69,7 +69,7 @@ def summarize(rows: list[dict]) -> dict:
         "laser_on": on / max(1, ticks),
         "median_dot_cat_m": float(np.median(dist)) if len(dist) else None,
         "sweet_spot": float(((dist >= SWEET[0]) & (dist <= SWEET[1])).mean()) if len(dist) else None,
-        "ended_on_toy": sum(r["toy"] for r in rows) / len(rows),
+        "ended_cleanly": sum(r["clean"] for r in rows) / len(rows),
         "refused_share": {k: v / max(ticks, 1) for k, v in sorted(blocked.items(), key=lambda kv: -kv[1])},
         "per_episode_laser_on": [r["on"] / max(1, r["ticks"]) for r in rows],
     }
@@ -116,7 +116,7 @@ def main() -> None:
                 st = run_student(student, pa, aimer, start_pose=start, on_tick=m, verbose=False)
                 blocked = st["blocked"]
             rows[who].append({"ticks": m.ticks, "on": m.on, "dist": m.dist, "blocked": blocked,
-                              "toy": st["ended_on_toy"], "cmds": m.cmds})
+                              "clean": st["ended_cleanly"], "cmds": m.cmds})
         t, s = rows["teacher"][-1], rows["student"][-1]
         print(f"episode {ep:2d}  seed {seed}  laser on: teacher {t['on'] / max(1, t['ticks']):4.0%}  "
               f"student {s['on'] / max(1, s['ticks']):4.0%}")

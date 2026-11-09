@@ -4,7 +4,7 @@
     python -m lekitten.record --episodes 50 --duration 45           # the training set (T2)
 
 Each episode: a fresh sim, a different fake-cat seed and starting pose, one play session that ends
-on the toy. Every tick (30 per second) saves both camera images, the arm's joints and the commanded
+calmly (dot holds still, laser off). Every tick (30 per second) saves both camera images, the arm's joints and the commanded
 joints, with the same names and units the real arm uses with lerobot-record.
 
 The dataset stays on this laptop in datasets/ (git-ignored): its images show the owner's home.
@@ -24,7 +24,7 @@ from .interfaces import JOINTS
 from .play import build_parser, run
 
 FPS = 30
-TASK = "Lead the cat around the rug with the laser dot, then land it on the toy."
+TASK = "Lead the cat around the rug with the laser dot."
 
 
 def features(h: int, w: int) -> dict:
@@ -37,7 +37,7 @@ def features(h: int, w: int) -> dict:
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--episodes", type=int, default=2)
-    p.add_argument("--duration", type=float, default=45.0, help="Play time per episode before landing on the toy")
+    p.add_argument("--duration", type=float, default=45.0, help="Play time per episode before the calm ending")
     p.add_argument("--root", default="datasets/lekitten_sim")
     p.add_argument("--room", default="living_room")
     p.add_argument("--first-seed", type=int, default=100)
@@ -92,9 +92,9 @@ def main() -> None:
         stats = run(pa, on_tick=on_tick, rate_hz=FPS, aimer=aimer, start_pose=start, verbose=False)
         ds.save_episode()
         on = stats["laser_on"] / max(1, stats["ticks"])
-        summary.append((ep, seed, n["frames"], on, stats["ended_on_toy"], time.time() - t0))
+        summary.append((ep, seed, n["frames"], on, stats["ended_cleanly"], time.time() - t0))
         print(f"episode {ep:3d}  seed {seed}  {n['frames']:5d} frames  laser on {on:4.0%}  "
-              f"{'ended on toy' if stats['ended_on_toy'] else 'DID NOT end on toy'}  {time.time() - t0:5.1f} s")
+              f"{'ended cleanly' if stats['ended_cleanly'] else 'DID NOT end cleanly'}  {time.time() - t0:5.1f} s")
 
     ds.finalize() if hasattr(ds, "finalize") else None
     frames = sum(s[2] for s in summary)

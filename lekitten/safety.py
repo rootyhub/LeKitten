@@ -7,8 +7,8 @@ Rules (from CLAUDE.md):
   3. The laser defaults to OFF, and turns off when no cat is seen for no_cat_timeout_s, on any
      error, on exit, and after max_session_s.
   4. Joint targets stay inside the joint limits and joints move no faster than max_joint_speed_deg_s.
-  5. Sessions end by landing the dot on the toy spot, holding, then laser off (play.py does the
-     landing; the guard enforces the hard stop).
+  5. Sessions end calmly: the dot stops where it is, holds end_hold_s, then laser off (play.py does
+     the ending; the guard enforces the hard stop).
 """
 from __future__ import annotations
 

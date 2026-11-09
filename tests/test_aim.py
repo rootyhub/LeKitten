@@ -18,8 +18,8 @@ def aimer(cfg):
     return Aimer(cfg, "sample_room", library_size=15_000)
 
 
-def test_hits_toy_spot_within_1cm(aimer, cfg):
-    x, y = cfg["rooms"]["sample_room"]["toy_spot"]
+def test_hits_rug_corner_within_1cm(aimer, cfg):
+    x, y = 0.3, 0.3  # near the rug corner
     r = aimer.aim_at(x, y)
     assert r is not None
     assert r.miss_m < 0.01

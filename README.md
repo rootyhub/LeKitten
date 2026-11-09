@@ -2,7 +2,7 @@
 
 Training an SO-ARM101 to play with my kittens using a laser pointer.
 
-The arm points a Class 2 (under 1 mW) laser at the floor, leads the cats around, never puts the dot on a cat or on the couch, and ends every session on their toy. Everything is built and tested in a MuJoCo simulation first, then runs unchanged on the real arm.
+The arm points a Class 2 (under 1 mW) laser at the floor, leads the cats around, never puts the dot on a cat or on the couch, and ends every session calmly: the dot stops, holds a moment, and the laser turns off.
 
 ## How it's organised
 
@@ -60,7 +60,7 @@ On the real arm, follow [docs/ARRIVAL_DAY.md](docs/ARRIVAL_DAY.md).
 
 Class 2 laser (under 1 mW), plus rules in `lekitten/safety.py` that every command goes through, in sim and real:
 the beam always points down, never at or across a cat, never through the couch where people sit;
-the laser is off by default, off when no cat is seen, off on any error or exit, and every session ends on the toy.
+the laser is off by default, off when no cat is seen, off on any error or exit, and every session ends with the dot holding still, then laser off.
 
 ## Credits
 

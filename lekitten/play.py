@@ -9,7 +9,7 @@ Behaviours:
   lead_ahead      the dot stays a little ahead of the cat, so it chases
   circle_and_pause the dot circles slowly, then freezes (cats love a still dot)
   dart_away       laser off, jump somewhere else, laser back on
-  land_on_toy     end of session: dot goes to the toy, holds, laser off
+  end of session  the dot stops where it is, holds a moment, laser off
 Every pose goes through safety.py first; the laser is only on when every rule passes.
 """
 from __future__ import annotations
@@ -207,8 +207,8 @@ def run(args: argparse.Namespace, on_tick=None, rate_hz: int = RATE_HZ, aimer: A
         cam_writer = FrameWriter(args.camera_video, c["width"], c["height"], rate_hz)
 
     dt = 1.0 / rate_hz
-    stats = {"ticks": 0, "laser_on": 0, "blocked": {}, "ended_on_toy": False}
-    guard_kw = dict(no_cat_timeout_s=s["no_cat_timeout_s"], max_session_s=duration + s["toy_hold_s"] + 10)
+    stats = {"ticks": 0, "laser_on": 0, "blocked": {}, "ended_cleanly": False}
+    guard_kw = dict(no_cat_timeout_s=s["no_cat_timeout_s"], max_session_s=duration + s["end_hold_s"] + 10)
     if sim_clock:
         guard_kw["clock"] = sim_clock
     try:
@@ -231,7 +231,7 @@ def run(args: argparse.Namespace, on_tick=None, rate_hz: int = RATE_HZ, aimer: A
                 cat = cats[0] if cats else None
 
                 if phase == "play" and now >= duration:
-                    phase = "toy"
+                    phase = "end"
                 if phase == "play":
                     goal, want_on = behaviours.goal(now, dot, cat)
                     # Never steer the dot into a cat: if the goal is too close, push it out.
@@ -242,18 +242,13 @@ def run(args: argparse.Namespace, on_tick=None, rate_hz: int = RATE_HZ, aimer: A
                             goal = np.array([c.x, c.y]) + (v / (np.linalg.norm(v) + 1e-9)) * dmin
                     jump = behaviours.mode == "dart_away" and not want_on
                     dot = goal.copy() if jump else step_toward(dot, goal, play["dot_speed_m_s"] * dt)
-                else:  # land on the toy, hold, then finish
+                else:  # end of session: the dot stops where it is, holds a moment, then laser off
                     want_on = True
-                    dot = step_toward(dot, zones.toy, play["dot_speed_m_s"] * dt)
-                    if np.linalg.norm(dot - zones.toy) < 0.01:
-                        hold_until = hold_until or now + s["toy_hold_s"]
-                        if now >= hold_until:
-                            guard.set(False)
-                            stats["ended_on_toy"] = True
-                            log("Landed on the toy, held, laser off. Session done.")
-                            break
-                    if now > duration + 15:
-                        log("Couldn't reach the toy in time; laser off.")
+                    hold_until = hold_until or now + s["end_hold_s"]
+                    if now >= hold_until:
+                        guard.set(False)
+                        stats["ended_cleanly"] = True
+                        log("Session over: dot held still, laser off.")
                         break
 
                 aim = aimer.aim_at(dot[0], dot[1], current)

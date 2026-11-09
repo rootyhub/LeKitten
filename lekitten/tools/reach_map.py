@@ -6,7 +6,7 @@
 Samples many arm poses inside the joint limits, throws out unsafe ones (beam not pointing down
 enough, arm bumping furniture or itself), and colours each floor cell by the best beam angle that
 reaches it: reachable / reachable-but-shallow (beam under 25 deg from the floor, dot smears) /
-unreachable. Play zone, toy spot, no-aim zones and furniture are drawn on top.
+unreachable. Play zone, no-aim zones and furniture are drawn on top.
 """
 from __future__ import annotations
 
@@ -139,8 +139,6 @@ def draw(rc, spot, best, lo, hi, shallow, cov, stats, out: Path, title: str):
             ax.add_patch(mpatches.Polygon(ps["polygon"], closed=True, fill=False, ec="#1f4e9c",
                                           lw=1.8, ls="--"))
     ax.add_patch(mpatches.Polygon(rc["play_zone"], closed=True, fill=False, ec="#1f4e9c", lw=2.5))
-    tx, ty = rc["toy_spot"]
-    ax.plot(tx, ty, marker="*", ms=16, color="#8e44ad", mec="white")
     s = rc["arm_spots"][spot]
     ax.plot(*s["xyz"][:2], marker="s", ms=9, color="black")
     yaw = np.radians(s["yaw_deg"])
@@ -158,7 +156,6 @@ def draw(rc, spot, best, lo, hi, shallow, cov, stats, out: Path, title: str):
               mpatches.Patch(fc="none", ec="#1f4e9c", lw=2, label="play zone"),
               mpatches.Patch(fc="none", ec="#1f4e9c", ls="--", lw=1.5, label="couch seat (couch_play)"),
               mpatches.Patch(fc="none", ec="#c0392b", hatch="///", label="no-aim zone (people sitting)"),
-              plt.Line2D([], [], marker="*", ls="", color="#8e44ad", ms=12, label="toy spot"),
               plt.Line2D([], [], marker="s", ls="", color="black", label="arm (arrow = facing)")]
     ax.legend(handles=legend, loc="upper left", bbox_to_anchor=(1.01, 1), fontsize=8, frameon=False)
     ax.set_xlabel("x (m)")

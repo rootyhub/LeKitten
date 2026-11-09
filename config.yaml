@@ -35,7 +35,8 @@ shared:
     cat_margin_m: 0.15            # dot never within cat radius + this
     no_cat_timeout_s: 10          # laser off when no cat is seen this long
     max_session_s: 300            # hard stop
-    toy_hold_s: 3                 # end of session: hold dot on toy, then off
+    end_hold_s: 1                 # end of session: the dot stops where it is, holds this long, then off
+    toy_hold_s: 3                 # TEMPORARY: only for the evaluation already running; remove after
 
   play:
     session_s: 180
@@ -52,7 +53,6 @@ rooms:
     arm_spot: A
     camera: {xyz: [1.0, -0.6, 2.2], look_at: [1.0, 0.75, 0.0]}
     play_zone: [[0.0, 0.0], [2.0, 0.0], [2.0, 1.5], [0.0, 1.5]]
-    toy_spot: [0.3, 0.3]
     hide_spots: [[2.4, 0.75]]          # where the fake cat goes to hide (under the table)
     couch_play: false
     play_surfaces: []
@@ -76,7 +76,6 @@ rooms:
     # On the orange desk, looking across the rug at the couch (photo 2026-11-08 15:35). Tuned in S4.
     camera: {xyz: [-0.30, 1.0, 1.10], look_at: [1.6, 1.0, 0.0]}
     play_zone: [[0.0, 0.0], [1.6, 0.0], [1.6, 2.4], [0.0, 2.4]]     # the rug
-    toy_spot: [0.3, 0.3]
     hide_spots: [[1.25, -0.23], [0.19, 2.2]]   # fake cat hides under the side table / behind the wood stand
     # Extra surfaces the dot may land on. The couch seat (31 cm in the scan, 2.3 m long measured)
     # is only used when couch_play is true. Turn it off when people are sitting on the couch.

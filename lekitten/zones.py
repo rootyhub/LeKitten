@@ -47,7 +47,6 @@ class Zones:
         for z in room.get("no_aim_zones", []):
             zmin = z.get("z_min", 0.0) if self.couch_play else z.get("z_min_no_couch_play", z.get("z_min", 0.0))
             self.no_aim.append(Volume(z["name"], np.array(z["polygon"], float), zmin, z["z_max"]))
-        self.toy = np.array(room["toy_spot"], float)
 
     def surface_at(self, p) -> Surface | None:
         """The play surface a 3D dot position lies on, or None."""
