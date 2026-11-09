@@ -29,8 +29,11 @@ class Dot:
 class Beam:
     """Laser geometry on any (model, data) that contains the arm."""
 
-    def __init__(self, model: mujoco.MjModel, mount_offset=(0.0, 0.0, 0.0)):
+    def __init__(self, model: mujoco.MjModel, mount_offset=(0.0, 0.0, 0.0), hit_groups=(0, 1)):
         self.m = model
+        # Which geom groups the beam can land on: 0 = floor/furniture looks, 1 = room scan,
+        # 3 = simple collision boxes (only when there's no scan).
+        self.groups = np.array([1 if g in hit_groups else 0 for g in range(6)], np.uint8)
         self.site = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "gripperframe")
         base = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "base")
         self.arm_root = model.body_rootid[base]
@@ -55,7 +58,7 @@ class Beam:
         p = np.array(origin, float)
         travelled = 0.0
         for _ in range(max_hops):
-            dist = mujoco.mj_ray(self.m, d, p, direction, None, 1, -1, self._gid)
+            dist = mujoco.mj_ray(self.m, d, p, direction, self.groups, 1, -1, self._gid)
             if dist < 0:
                 return None, -1
             g = int(self._gid[0])
@@ -91,11 +94,21 @@ class Beam:
 class ArmKinematics:
     """Pose the arm (LeRobot degrees) in a physics-free copy of the room and ask geometric questions."""
 
-    def __init__(self, cfg: dict, room: str | None = None, spot: str | None = None):
-        self.model = build_model(cfg, room, spot, visual=False)
+    def __init__(self, cfg: dict, room: str | None = None, spot: str | None = None,
+                 use_scene: bool = True):
+        """use_scene: land the beam on the room's real surfaces (scan / furniture models) when the
+        scene loads; otherwise (e.g. home Mac without the scan) on the simple collision boxes."""
+        self.model, groups = None, (0, 3)
+        if use_scene:
+            try:
+                self.model, groups = build_model(cfg, room, spot, visual=True), (0, 1)
+            except Exception as e:  # scan files missing on this machine
+                print(f"(room scene not available, using simple shapes: {e})")
+        if self.model is None:
+            self.model = build_model(cfg, room, spot, visual=False)
         self.data = mujoco.MjData(self.model)
         self.jm = JointMap(self.model, cfg["sim"]["joint_map"])
-        self.beam = Beam(self.model, cfg["shared"]["laser"]["mount_offset_m"])
+        self.beam = Beam(self.model, cfg["shared"]["laser"]["mount_offset_m"], hit_groups=groups)
 
     def set_joints(self, joints: dict[str, float]) -> None:
         for j, v in joints.items():
